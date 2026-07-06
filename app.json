@@ -76,7 +76,8 @@
         {
           "photosPermission": "AIPA'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var."
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

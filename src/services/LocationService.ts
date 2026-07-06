@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { triggerLocalNotificationMock } from './NotificationService';
 
@@ -31,14 +32,14 @@ export const startGeofencing = async (lat: number = 41.0082, lon: number = 28.97
       return;
     }
 
-    // 2. Arka plan (Background) izni al
-    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-    if (bgStatus !== 'granted') {
-      console.log('Background location permission denied');
-      return;
-    }
+    // 2. Arka plan (Background) izni al (Expo Go'da çökmemesi için devre dışı bırakıldı)
+    // const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+    // if (bgStatus !== 'granted') {
+    //   console.log('Background location permission denied');
+    //   return;
+    // }
 
-    // 3. Geofencing izleme işlemini başlat
+    // 3. Geofencing izleme işlemini başlat (Sadece özel dev client'larda çalışır, Expo Go çökmemesi için try-catch eklendi)
     await Location.startGeofencingAsync(GEOFENCING_TASK, [
       {
         identifier: 'DynamicLocation_' + Date.now().toString(),
@@ -50,7 +51,81 @@ export const startGeofencing = async (lat: number = 41.0082, lon: number = 28.97
       }
     ]);
     console.log(`Geofencing başarıyla başlatıldı: Lat ${lat}, Lon ${lon}. Message: ${message}`);
-  } catch (err) {
-    console.error('Geofencing başlatılamadı:', err);
+  } catch (err: any) {
+    console.log('Geofencing başlatılamadı (Expo Go kısıtlaması olabilir):', err.message);
+  }
+};
+
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3; // metres
+  const p1 = lat1 * Math.PI/180;
+  const p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180;
+  const dl = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+let watchSubscription: Location.LocationSubscription | null = null;
+
+export const startForegroundLocationWatch = async () => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('Foreground location denied');
+      return;
+    }
+
+    if (watchSubscription) {
+      watchSubscription.remove();
+    }
+
+    watchSubscription = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000, // 10 saniyede bir
+        distanceInterval: 10, // 10 metrede bir
+      },
+      async (location) => {
+        const { latitude, longitude } = location.coords;
+        
+        // Dynamically import useAppStore to avoid circular dependencies
+        const store = await import('../store/useAppStore');
+        const state = store.useAppStore.getState();
+        const { geofences, tasks, completeTask } = state;
+
+        for (const fence of geofences) {
+          const distance = getDistance(latitude, longitude, fence.latitude, fence.longitude);
+          
+          // Eğer alanın içindeysek
+          if (distance <= fence.radius) {
+            // Bu alana ait BİTMEMİŞ görevleri bul
+            const matchingTasks = tasks.filter((t: any) => t.locationId === fence.id);
+            
+            for (const task of matchingTasks) {
+              console.log(`Geofence Tetiklendi: ${fence.title} -> Görev: ${task.title}`);
+              
+              // Bildirim At
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `📍 Konum Görevi: ${fence.title}`,
+                  body: `${task.title}\n${task.summary}`,
+                  sound: true,
+                },
+                trigger: null, // Hemen göster
+              });
+
+              // Görevi tamamlandı olarak işaretle ki sürekli bildirim atmasın
+              completeTask(task.id);
+            }
+          }
+        }
+      }
+    );
+    console.log('Canlı konum takibi başlatıldı (Foreground).');
+  } catch (error) {
+    console.error('Konum takibi başlatılamadı:', error);
   }
 };

@@ -10,6 +10,7 @@ import { CalendarScreen } from '../screens/CalendarScreen';
 import { FocusModeScreen } from '../screens/FocusModeScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ChatScreen } from '../screens/ChatScreen';
+import { MapScreen } from '../screens/MapScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -33,6 +34,8 @@ export const TabNavigator = () => {
             iconName = focused ? 'bullseye-arrow' : 'bullseye';
           } else if (route.name === 'Profil') {
             iconName = focused ? 'account-circle' : 'account-circle-outline';
+          } else if (route.name === 'Harita') {
+            iconName = focused ? 'map-marker' : 'map-marker-outline';
           }
 
           return (
@@ -81,6 +84,7 @@ export const TabNavigator = () => {
     >
       <Tab.Screen name="Gündelik" component={DashboardScreen} />
       <Tab.Screen name="Takvim" component={CalendarScreen} />
+      <Tab.Screen name="Harita" component={MapScreen} />
       <Tab.Screen name="Sohbet" component={ChatScreen} />
       <Tab.Screen name="Odaklanma" component={FocusModeScreen} />
       <Tab.Screen name="Profil" component={ProfileScreen} />

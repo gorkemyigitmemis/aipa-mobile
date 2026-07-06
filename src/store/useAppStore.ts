@@ -5,21 +5,13 @@ import { api } from '../services/api';
 import { summarizeAndScoreEmail } from '../services/GeminiService';
 import * as Notifications from 'expo-notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
 export interface Task {
   id: string;
   title: string;
   summary: string;
   urgencyScore: number;
+  completedAt?: Date;
+  locationId?: string;
 }
 
 export interface Email {
@@ -44,6 +36,15 @@ export interface ChatMessage {
   text: string;
   isUser: boolean;
   imageUri?: string;
+}
+
+export interface Geofence {
+  id: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  title: string;
+  description: string;
 }
 
 interface AppState {
@@ -76,10 +77,15 @@ interface AppState {
   startDataPolling: () => void;
   completeTask: (id: string) => void;
   deleteTask: (id: string) => void;
+  addTask: (task: Task) => void;
 
   chatMessages: ChatMessage[];
   addChatMessage: (msg: ChatMessage) => void;
   clearChatMessages: () => void;
+
+  geofences: Geofence[];
+  addGeofence: (fence: Geofence) => void;
+  removeGeofence: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -176,23 +182,46 @@ export const useAppStore = create<AppState>()(
     tasks: state.tasks.filter((t: Task) => t.id !== id)
   })),
 
+  addTask: (task) => set((state) => ({
+    tasks: [task, ...state.tasks]
+  })),
+
   chatMessages: [
     { id: '1', text: 'Merhaba! Ben AIPA, senin kişisel yapay zeka asistanınım. Bugün sana nasıl yardımcı olabilirim?', isUser: false }
   ],
   addChatMessage: (msg) => set((state) => ({ chatMessages: [...state.chatMessages, msg] })),
   clearChatMessages: () => set({ chatMessages: [] }),
 
+  geofences: [
+    {
+      id: 'g1',
+      latitude: 41.0082,
+      longitude: 28.9784,
+      radius: 100,
+      title: 'Ofis',
+      description: 'Ofise varınca günlük brifingi oku.'
+    },
+    {
+      id: 'g2',
+      latitude: 40.9900,
+      longitude: 29.0200,
+      radius: 150,
+      title: 'Market',
+      description: 'Markete girince süt ve yumurta al.'
+    }
+  ],
+  addGeofence: (fence) => set((state) => ({ geofences: [...state.geofences, fence] })),
+  removeGeofence: (id) => set((state) => ({ geofences: state.geofences.filter(g => g.id !== id) })),
+
   fetchDailyBriefing: async () => {
     set({ isLoading: true, error: null });
     try {
-      // Backend'den günlük özeti çek
-      const response = await api.get('/daily-briefing');
-      
-      set({ tasks: response.data, isLoading: false });
+      // Yapay zeka asistanının planı hazırlamasını simüle ediyoruz (Local-First mimari)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      set({ isLoading: false });
     } catch (error: any) {
-      console.error('API Error:', error.message);
       set({ 
-        error: 'Veriler yüklenemedi. Backend sunucusunun çalıştığından emin olun.', 
+        error: 'Görevler yüklenirken bir hata oluştu.', 
         isLoading: false 
       });
     }
@@ -343,7 +372,7 @@ export const useAppStore = create<AppState>()(
   }
     }),
     {
-      name: 'aipa-storage',
+      name: 'aipa-storage-v5',
       storage: createJSONStorage(() => AsyncStorage),
       // İsteğe bağlı: Hangi verilerin diske yazılacağını seçebilirsiniz. 
       // (Emails ve Events gibi API'den her açılışta güncel çekilen verileri persist etmemek daha iyidir)
@@ -354,6 +383,7 @@ export const useAppStore = create<AppState>()(
         userToken: state.userToken,
         userInfo: state.userInfo,
         chatMessages: state.chatMessages,
+        geofences: state.geofences,
       }),
     }
   )

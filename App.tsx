@@ -6,7 +6,7 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { registerForPushNotificationsAsync, setupNotificationHandler, scheduleMorningBriefing } from './src/services/NotificationService';
-import { startGeofencing } from './src/services/LocationService';
+import { startForegroundLocationWatch } from './src/services/LocationService';
 import { useAppStore } from './src/store/useAppStore';
 import { lightTheme, darkTheme } from './src/theme/theme';
 
@@ -21,8 +21,8 @@ export default function App() {
     // Uygulama açıldığında bildirim izni iste ve token al
     registerForPushNotificationsAsync();
     
-    // Konum izni iste ve geofencing arka plan görevini başlat
-    startGeofencing();
+    // Ön plan konum takibini başlat (Geofencing simülasyonu)
+    startForegroundLocationWatch();
 
     // Sabah bildirimini kur
     scheduleMorningBriefing();

@@ -2,9 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, Animated, Dimensions } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Button, Avatar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ConfettiCannon from 'react-native-confetti-cannon';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TaskCard } from '../components/TaskCard';
@@ -30,20 +30,28 @@ export const DashboardScreen = () => {
   const isLoading = useAppStore((state) => state.isLoading);
   const error = useAppStore((state) => state.error);
   const fetchDailyBriefing = useAppStore((state) => state.fetchDailyBriefing);
-  const confettiTick = useAppStore((state) => state.confettiTick);
   
   const userToken = useAppStore((state) => state.userToken);
   const setUserToken = useAppStore((state) => state.setUserToken);
   const startDataPolling = useAppStore((state) => state.startDataPolling);
 
+  const redirectUri = 'https://auth.expo.io/@oyuncucilgin008/AIPA_Mobile';
+  
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
     scopes: [
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/calendar.readonly'
     ],
+    redirectUri,
   });
+
+  useEffect(() => {
+    console.log("GOOGLE AUTH REDIRECT URI BİLGİSİ (BUNU GOOGLE CLOUD'A EKLE):", redirectUri);
+  }, [redirectUri]);
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -56,17 +64,10 @@ export const DashboardScreen = () => {
   }, [response]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const cannonRef = useRef<ConfettiCannon>(null);
 
   useEffect(() => {
     fetchDailyBriefing();
   }, []);
-
-  useEffect(() => {
-    if (confettiTick > 0 && cannonRef.current) {
-      cannonRef.current.start();
-    }
-  }, [confettiTick]);
 
   useEffect(() => {
     if (!isLoading && tasks.length > 0) {
@@ -187,14 +188,6 @@ export const DashboardScreen = () => {
         </Animated.View>
       )}
 
-      {/* Konfeti fırlatıcı bileşen */}
-      <ConfettiCannon
-        ref={cannonRef}
-        count={50}
-        origin={{x: -10, y: 0}}
-        autoStart={false}
-        fadeOut={true}
-      />
       </ScrollView>
     </View>
   );

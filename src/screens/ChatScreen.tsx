@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { sendMessageToGemini, initChatSession } from '../services/GeminiService';
 import { startGeofencing } from '../services/LocationService';
@@ -45,7 +46,8 @@ export const ChatScreen = () => {
     useAppStore.getState().fetchWeather();
     
     // Gemini'yi güncel tasklarla başlat
-    initChatSession();
+    const { tasks, emails, weatherInfo } = useAppStore.getState();
+    initChatSession(tasks, emails, weatherInfo);
 
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -97,7 +99,17 @@ export const ChatScreen = () => {
     setSelectedImage(null);
     setIsLoading(true);
 
-    let aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64);
+    const { tasks, emails, weatherInfo, geofences } = useAppStore.getState();
+    
+    let userLocation = null;
+    try {
+      const loc = await Location.getLastKnownPositionAsync({});
+      if (loc) {
+        userLocation = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+      }
+    } catch (e) { console.log('Location fetch failed:', e); }
+
+    let aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64, tasks, emails, weatherInfo, geofences, userLocation);
     
     // Geofencing Parsing
     const geoMatch = aiResponseText.match(/\|\|GEO:(.*?)\|\|/);

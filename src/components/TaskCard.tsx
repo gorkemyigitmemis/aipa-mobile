@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Card, Text, useTheme, Button } from 'react-native-paper';
+import { Text, useTheme, Button } from 'react-native-paper';
 import { StyleSheet, View, Animated, PanResponder, Dimensions } from 'react-native';
 import { addEventToCalendar } from '../services/CalendarService';
 import { triggerLocalNotificationMock } from '../services/NotificationService';
@@ -90,13 +90,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ id, title, summary, urgencyS
       <Text style={styles.actionTextRight}>SİL</Text>
 
       <Animated.View {...panResponder.panHandlers} style={{ transform: [{ translateX: pan.x }] }}>
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <View style={[styles.priorityStrip, { backgroundColor: getPriorityColor() }]} />
 
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text variant="titleMedium" style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>
-                {title}
+              <Text variant="titleMedium" style={[styles.title, { color: '#000' }]} numberOfLines={1}>
+                {title || 'İsimsiz Görev'}
               </Text>
               <Animated.View style={[
                 styles.badge, 
@@ -104,13 +104,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ id, title, summary, urgencyS
                 urgencyScore >= 80 && { transform: [{ scale: pulseAnim }] }
               ]}>
                 <Text style={[styles.badgeText, { color: getPriorityColor() }]}>
-                  {urgencyScore}/100
+                  {urgencyScore || 0}/100
                 </Text>
               </Animated.View>
             </View>
 
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }} numberOfLines={2}>
-              {summary}
+            <Text variant="bodyMedium" style={{ color: '#000', marginBottom: 16 }} numberOfLines={2}>
+              {summary || 'Bu görevin detayları bulunamadı.'}
             </Text>
               
             <View style={styles.actionsRow}>
@@ -122,7 +122,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ id, title, summary, urgencyS
               </Button>
             </View>
           </View>
-        </Card>
+        </View>
       </Animated.View>
     </Animated.View>
   );
@@ -142,6 +142,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     flexDirection: 'row',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   priorityStrip: {
     width: 6,

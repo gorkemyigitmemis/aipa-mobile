@@ -43,3 +43,37 @@ export const addEventToCalendar = async (title: string, startDate: Date, endDate
     Alert.alert('Hata', 'Etkinlik eklenirken bir sorun oluştu.');
   }
 };
+
+export const addEventSilently = async (title: string, startDate: Date, endDate: Date) => {
+  try {
+    const { status: calendarStatus } = await Calendar.requestCalendarPermissionsAsync();
+    
+    if (calendarStatus === 'granted') {
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const defaultCalendar = Platform.OS === 'ios'
+        ? calendars.find(cal => cal.source && cal.source.name === 'Default') || calendars[0]
+        : calendars.find(cal => cal.isPrimary) || calendars[0];
+
+      if (!defaultCalendar) {
+        console.error('Cihazda uygun bir takvim bulunamadı.');
+        return null;
+      }
+
+      const eventId = await Calendar.createEventAsync(defaultCalendar.id, {
+        title: title,
+        startDate: startDate,
+        endDate: endDate,
+        timeZone: 'Europe/Istanbul',
+      });
+
+      console.log('Etkinlik takvime başarıyla eklendi (Sessiz):', eventId);
+      return eventId;
+    } else {
+      console.error('Takvim izni verilmediği için etkinlik eklenemiyor.');
+      return null;
+    }
+  } catch (error) {
+    console.error('Takvime sessiz ekleme hatası:', error);
+    return null;
+  }
+};
