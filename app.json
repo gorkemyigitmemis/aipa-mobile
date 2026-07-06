@@ -1,0 +1,82 @@
+{
+  "expo": {
+    "sdkVersion": "54.0.0",
+    "name": "AIPA_Mobile",
+    "slug": "AIPA_Mobile",
+    "scheme": "aipamobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aipa.mobile",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "NSMicrophoneUsageDescription": "Sesli notlarınızı kaydetmek için mikrofona erişim iznine ihtiyacımız var.",
+        "NSLocationWhenInUseUsageDescription": "Uygulama açıkken spor salonu gibi hedeflerinizi takip etmek için konumunuzu kullanırız.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Arka planda çalışırken geofencing yeteneklerini (örneğin antrenman hatırlatıcısı) sunabilmek için konumunuzu takip etmemiz gerekir.",
+        "NSCalendarsUsageDescription": "Takviminize etkinlik eklemek için izninize ihtiyaç duyuyoruz.",
+        "NSRemindersUsageDescription": "Etkinlik hatırlatıcıları eklemek için izninize ihtiyaç duyuyoruz.",
+        "NSPhotoLibraryUsageDescription": "AIPA'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var.",
+        "NSCameraUsageDescription": "AIPA'nın belgelerinizi okuyabilmesi için kameranıza erişim iznine ihtiyacımız var."
+      }
+    },
+    "android": {
+      "package": "com.aipa.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECORD_AUDIO",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "AIPA_Mobile takviminize etkinlik eklemek için izninize ihtiyaç duyuyor.",
+          "remindersPermission": "AIPA_Mobile etkinlik hatırlatıcıları eklemek için izninize ihtiyaç duyuyor."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/urgent_alert.wav"
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Spor salonuna veya hedef noktalara yaklaştığınızda size antrenman programınızı hatırlatmak için konumunuzu arka planda kullanırız."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AIPA'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var."
+        }
+      ]
+    ]
+  }
+}
