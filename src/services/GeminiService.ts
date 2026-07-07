@@ -238,9 +238,21 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
     let data = await response.json();
     console.log('Gemini Raw API Response:', JSON.stringify(data));
 
-    // Fallback to Pro model if Flash is overloaded
-    if (data.error && (data.error.code === 429 || data.error.code === 503)) {
-      console.log('Flash model is overloaded (429/503). Falling back to Pro model...');
+    // Automatic Retry for 429 (Rate Limit)
+    if (data.error && data.error.code === 429) {
+      console.log('Rate limit hit (429). Waiting 15 seconds before retrying...');
+      await new Promise(resolve => setTimeout(resolve, 15000));
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      data = await response.json();
+    }
+
+    // Fallback to Pro model if Flash is STILL overloaded (503)
+    if (data.error && data.error.code === 503) {
+      console.log('Flash model is overloaded (503). Falling back to Pro model...');
       endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${API_KEY}`;
       response = await fetch(endpoint, {
         method: 'POST',
@@ -253,7 +265,7 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
     if (data.error) {
       console.error('Initial Gemini Error:', data.error);
       if (data.error.code === 429) {
-        return "Üzgünüm kanka, Google API'sine çok hızlı istek attık ve bizi 1 dakikalığına engelledi (Rate Limit). Lütfen 30 saniye bekleyip tekrar sorar mısın? ⏳";
+        return "Üzgünüm kanka, Google bizi çok hızlı soru sorduğumuz için blokladı (Limit aşıldı). Seni bekletmemek için 15 saniye bekleyip tekrar denedim ama hala izin vermiyor. Lütfen biraz soluklanıp 1 dakika sonra tekrar dene. 🙏";
       }
       if (data.error.code === 503) {
         return "Kanka şu an Google yapay zeka sunucularında aşırı yoğunluk (High Demand) var. Lütfen birkaç dakika bekleyip tekrar sorar mısın? ⏳";
@@ -387,10 +399,21 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
       data = await response.json();
       console.log('Final Gemini Raw API Response:', JSON.stringify(data));
 
+      if (data.error && data.error.code === 429) {
+        console.log('Rate limit hit (429) on final fetch. Waiting 15 seconds before retrying...');
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        data = await response.json();
+      }
+
       if (data.error) {
         console.error('Final Gemini Error:', data.error);
         if (data.error.code === 429) {
-          return "Üzgünüm kanka, internette arama yaparken Google'ın anlık sorgu limitine takıldık (Çok hızlı istek attık). Lütfen 30 saniye sonra tekrar dener misin? ⏳";
+          return "Üzgünüm kanka, internette arama yaparken Google limitlerine takıldık. 15 saniye bekleyip otomatik denedim ama nafile. Lütfen 1 dakika sonra tekrar dene. 🙏";
         }
         if (data.error.code === 503) {
           return "Kanka şu an Google yapay zeka sunucularında aşırı yoğunluk (High Demand) var. İnternet araması tamamlanamadı. Lütfen birazdan tekrar dene! ⏳";
