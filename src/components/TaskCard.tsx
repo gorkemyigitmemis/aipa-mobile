@@ -95,7 +95,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ id, title, summary, urgencyS
 
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text variant="titleMedium" style={[styles.title, { color: '#000' }]} numberOfLines={1}>
+              <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]} numberOfLines={1}>
                 {title || 'İsimsiz Görev'}
               </Text>
               <Animated.View style={[
@@ -109,7 +109,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ id, title, summary, urgencyS
               </Animated.View>
             </View>
 
-            <Text variant="bodyMedium" style={{ color: '#000', marginBottom: 16 }} numberOfLines={2}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }} numberOfLines={2}>
               {summary || 'Bu görevin detayları bulunamadı.'}
             </Text>
               

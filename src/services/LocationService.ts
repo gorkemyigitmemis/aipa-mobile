@@ -19,10 +19,18 @@ TaskManager.defineTask(GEOFENCING_TASK, async ({ data, error }: any) => {
       // ENTER durumu: Bölgeye giriş yapıldığında
       if (eventType === Location.GeofencingEventType.Enter) {
         console.log("Hedef konuma giriş yapıldı (Arka plan)!", region);
+        
+        let notifyMessage = "Belirlediğiniz hedefe ulaştınız!";
+        if (region && region.identifier && region.identifier.startsWith('GEO_')) {
+          try {
+            notifyMessage = decodeURIComponent(region.identifier.replace('GEO_', ''));
+          } catch(e) {}
+        }
+
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: "📍 Aisistan Konum Uyarısı",
-            body: "Belirlediğiniz hedefe ulaştınız!",
+            title: "📍 Aisistan",
+            body: notifyMessage,
             sound: true,
           },
           trigger: null,
@@ -56,7 +64,7 @@ export const startGeofencing = async (lat: number = 41.0082, lon: number = 28.97
     // 3. Geofencing izleme işlemini başlat (Expo Go çökmemesi için try-catch eklendi)
     await Location.startGeofencingAsync(GEOFENCING_TASK, [
       {
-        identifier: 'DynamicLocation_' + Date.now().toString(),
+        identifier: 'GEO_' + encodeURIComponent(message),
         latitude: lat,
         longitude: lon,
         radius: radius,

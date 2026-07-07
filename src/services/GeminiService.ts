@@ -31,7 +31,7 @@ const fetchWeatherData = async (city: string) => {
 
 let chatHistory: any[] = [
   { role: "user", parts: [{ text: "Merhaba, sen kimsin?" }] },
-  { role: "model", parts: [{ text: "Merhaba! Ben AIPA, senin kişisel yapay zeka asistanınım. Bugün sana nasıl yardımcı olabilirim?" }] }
+  { role: "model", parts: [{ text: "Merhaba! Ben Aisistan, senin kişisel yapay zeka asistanınım. Bugün sana nasıl yardımcı olabilirim?" }] }
 ];
 
 export const initChatSession = (tasks: any[], emails: any[], weatherInfo: string | null) => {
@@ -41,18 +41,18 @@ export const initChatSession = (tasks: any[], emails: any[], weatherInfo: string
 export const sendMessageToGemini = async (message: string, imageBase64?: string, tasks: any[] = [], emails: any[] = [], weatherInfo: string | null = null, geofences: any[] = [], userLocation: { lat: number, lon: number } | null = null, userPreferences: string[] = []): Promise<string> => {
   try {
     const taskListText = tasks.length > 0 
-      ? tasks.map(t => `- ${t.title} (Aciliyet: ${t.urgencyScore}): ${t.summary}`).join('\n')
+      ? tasks.slice(0, 15).map(t => `- ${t.title} (Aciliyet: ${t.urgencyScore}): ${t.summary}`).join('\n')
       : 'Şu an bekleyen hiçbir görev yok, gün bomboş!';
 
     const emailsText = emails.length > 0
-      ? emails.map(e => `KİMDEN: ${e.sender} | KONU: ${e.subject}\nİÇERİK: ${e.body}`).join('\n\n')
+      ? emails.slice(0, 10).map(e => `KİMDEN: ${e.sender} | KONU: ${e.subject}\nİÇERİK: ${e.body}`).join('\n\n')
       : 'Yeni mail yok.';
 
     const geofencesText = geofences.length > 0
-      ? geofences.map(g => `- ID: ${g.id} | İsim: ${g.title} | Açıklama: ${g.description}`).join('\n')
+      ? geofences.slice(0, 15).map(g => `- ID: ${g.id} | İsim: ${g.title} | Açıklama: ${g.description}`).join('\n')
       : 'Kullanıcının kayıtlı bir konumu yok.';
 
-    const systemInstructionText = `Sen AIPA adında, Türkçeyi mükemmel konuşan, motive edici, yardımsever ve proaktif bir kişisel yapay zeka asistanısın. Kullanıcının günlük planlarını yapar, ona tavsiyeler verirsin. Kısa, net ve samimi cevaplar ver. 
+    const systemInstructionText = `Sen Aisistan adında, Türkçeyi mükemmel konuşan, motive edici, yardımsever ve proaktif bir kişisel yapay zeka asistanısın. Kullanıcının günlük planlarını yapar, ona tavsiyeler verirsin. Kısa, net ve samimi cevaplar ver. 
   
 ŞU ANKİ HAVA DURUMU:
 ${weatherInfo || 'Hava durumu verisi alınamadı.'}
@@ -67,7 +67,7 @@ ${emailsText}
 ${geofencesText}
 
 KULLANICININ KALICI HAFIZASI (SENİN ÖĞRENDİĞİN BİLGİLER):
-${userPreferences.length > 0 ? userPreferences.map(p => `- ${p}`).join('\n') : 'Henüz kullanıcı hakkında özel bir bilgi kaydedilmedi.'}
+${userPreferences.length > 0 ? userPreferences.slice(-30).map(p => `- ${p}`).join('\n') : 'Henüz kullanıcı hakkında özel bir bilgi kaydedilmedi.'}
 Kullanıcı sana kendisiyle, hobileriyle veya kalıcı olarak hatırlamanı istediği bir şeyle ilgili bir bilgi verirse KESİNLİKLE "saveUserPreference" aracını kullanıp bunu kaydet. Böylece ileride bu bilgilere göre çok daha kişiselleştirilmiş cevaplar verebilirsin.
 
 ÖZEL TALİMAT 1: Kullanıcı sana "spora geldim", "salondayım" veya spora başladığını belirten bir şey söylerse, onu hemen motive et ve GÖĞÜS & ARKA KOL antrenman programını madde madde, emojilerle listele. Örnek Program:
@@ -207,6 +207,19 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
                 },
                 required: ["preference"]
               }
+            },
+            {
+              name: "addExpense",
+              description: "Kullanıcının yaptığı bir harcamayı kaydeder. Kullanıcı 'Şuna şu kadar para harcadım', 'kahveye 100 lira verdim' gibi bir cümle kurduğunda kullanılır.",
+              parameters: {
+                type: "object",
+                properties: {
+                  amount: { type: "number", description: "Harcamanın sayısal tutarı (Örn: 100)" },
+                  title: { type: "string", description: "Harcamanın ne olduğu (Örn: Starbucks Kahve)" },
+                  category: { type: "string", description: "Harcamanın kategorisi (Örn: Gıda, Ulaşım, Fatura, Alışveriş, Eğlence, Diğer)" }
+                },
+                required: ["amount", "title", "category"]
+              }
             }
           ]
         }
@@ -287,6 +300,19 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
           store.useAppStore.getState().saveUserPreference(preference);
         });
         apiResponse = { success: true, message: "Bilgi başarıyla hafızaya kaydedildi." };
+      } else if (call.name === 'addExpense') {
+        const { amount, title, category } = call.args;
+        const newExpense = {
+          id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
+          amount: Number(amount),
+          title,
+          category,
+          date: new Date().toISOString()
+        };
+        import('../store/useAppStore').then(store => {
+          store.useAppStore.getState().addExpense(newExpense);
+        });
+        apiResponse = { success: true, message: "Harcama başarıyla cüzdana kaydedildi.", expense: newExpense };
       } else if (call.name === 'calculateDistanceToStore') {
         const storeName = call.args.storeName;
         if (!userLocation) {
@@ -302,7 +328,8 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
             contents: [{ role: 'user', parts: [{ text: query }] }],
             tools: [{ googleSearch: {} }]
           };
-          const searchRes = await fetch(endpoint, {
+          const searchEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
+          const searchRes = await fetch(searchEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(searchPayload)
@@ -311,12 +338,14 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
           if (searchData.error) {
             console.error('Nested Search Error:', searchData.error);
             if (searchData.error.code === 429) {
-              return "Üzgünüm kanka, canlı arama yaparken Google'ın anlık limitlerine takıldık. 1 dakika dinlenip öyle sorar mısın? ⏳";
+              apiResponse = { success: false, error: "Google canlı arama limitine (429) takıldı. Kullanıcıya internete şu an bağlanamadığını ancak kendi genel bilgilerinle yardımcı olabileceğini samimi bir dille söyle." };
+            } else {
+              apiResponse = { success: false, error: `Arama Hatası: ${searchData.error.message}` };
             }
-            return `Arama Hatası: ${searchData.error.message}`;
+          } else {
+            const searchResultText = searchData.candidates?.[0]?.content?.parts?.[0]?.text || "Arama sonucu bulunamadı.";
+            apiResponse = { success: true, result: searchResultText };
           }
-          const searchResultText = searchData.candidates?.[0]?.content?.parts?.[0]?.text || "Arama sonucu bulunamadı.";
-          apiResponse = { success: true, result: searchResultText };
         } catch (e: any) {
           console.error('Nested Search Exception:', e);
           apiResponse = { success: false, error: "İnternet araması başarısız oldu." };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard, Animated, Image, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, FlatList, KeyboardAvoidingView, Platform, Keyboard, Animated, Image, TouchableOpacity, Linking } from 'react-native';
 import { Text, TextInput, IconButton, useTheme, ActivityIndicator, Chip } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -12,7 +12,7 @@ import { startGeofencing } from '../services/LocationService';
 import { useAppStore } from '../store/useAppStore';
 
 interface ChatAction {
-  type: 'map' | 'link';
+  type: 'map' | 'link' | 'youtube' | 'spotify';
   label: string;
   url?: string;
   query?: string;
@@ -25,6 +25,63 @@ interface Message {
   imageUri?: string;
   actions?: ChatAction[];
 }
+
+const ChatBubble = React.memo(({ msg, theme }: { msg: Message, theme: any }) => {
+  return (
+    <View 
+      style={[
+        styles.messageBubble,
+        msg.isUser ? styles.userBubble : [styles.aiBubble, { backgroundColor: theme.colors.glassBackground, borderColor: theme.colors.glassBorder }],
+        msg.isUser ? { backgroundColor: theme.colors.primary } : {}
+      ]}
+    >
+      {msg.imageUri && (
+        <Image source={{ uri: msg.imageUri }} style={styles.messageImage} />
+      )}
+      {msg.text !== '' && (
+        <Text style={{ 
+          color: msg.isUser ? theme.colors.onPrimary : theme.colors.text,
+          fontSize: 15,
+          lineHeight: 22,
+          marginTop: msg.imageUri ? 8 : 0
+        }}>
+          {msg.text}
+        </Text>
+      )}
+      {msg.actions && msg.actions.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 }}>
+          {msg.actions.map((act, index) => (
+            <Chip 
+              key={index} 
+              icon={
+                act.type === 'map' ? 'map-marker' : 
+                act.type === 'youtube' ? 'youtube' :
+                act.type === 'spotify' ? 'spotify' : 'link'
+              } 
+              mode="outlined" 
+              onPress={() => {
+                if (act.type === 'map' && act.query) {
+                   Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.query)}`);
+                } else if ((act.type === 'link' || act.type === 'youtube' || act.type === 'spotify') && act.url) {
+                   Linking.openURL(act.url);
+                }
+              }}
+              style={{ 
+                backgroundColor: theme.colors.surface,
+                borderColor: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.outline
+              }}
+              textStyle={{
+                color: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.text
+              }}
+            >
+              {act.label}
+            </Chip>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
 
 export const ChatScreen = () => {
   const theme = useTheme() as any;
@@ -118,34 +175,42 @@ export const ChatScreen = () => {
       }
     } catch (e) { console.log('Location fetch failed:', e); }
 
-    let aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64, tasks, emails, weatherInfo, geofences, userLocation, userPreferences);
-    
-    // Geofencing Parsing
-    const geoMatch = aiResponseText.match(/\|\|GEO:(.*?)\|\|/);
-    if (geoMatch && geoMatch[1]) {
-      try {
-        const geoData = JSON.parse(geoMatch[1]);
-        if (geoData.lat && geoData.lon) {
-          startGeofencing(geoData.lat, geoData.lon, 100, geoData.message || 'Konum hatırlatıcısı tetiklendi!');
-        }
-      } catch (e) {
-        console.error('Geo Parse Error:', e);
-      }
-      aiResponseText = aiResponseText.replace(/\|\|GEO:.*?\|\|/g, '').trim();
-    }
-
-    // Action Parsing
+    let aiResponseText = '';
     const parsedActions: ChatAction[] = [];
-    const actionRegex = /\|\|ACTION:(.*?)\|\|/g;
-    let match;
-    while ((match = actionRegex.exec(aiResponseText)) !== null) {
-      try {
-        parsedActions.push(JSON.parse(match[1]));
-      } catch (e) {
-        console.error('Action Parse Error:', e);
+
+    try {
+      aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64, tasks, emails, weatherInfo, geofences, userLocation, userPreferences);
+      
+      // Geofencing Parsing
+      const geoMatch = aiResponseText.match(/\|\|GEO:(.*?)\|\|/);
+      if (geoMatch && geoMatch[1]) {
+        try {
+          const geoData = JSON.parse(geoMatch[1]);
+          if (geoData.lat && geoData.lon) {
+            startGeofencing(geoData.lat, geoData.lon, 100, geoData.message || 'Konum hatırlatıcısı tetiklendi!');
+          }
+        } catch (e) {
+          console.error('Geo Parse Error:', e);
+        }
+        aiResponseText = aiResponseText.replace(/\|\|GEO:.*?\|\|/g, '').trim();
       }
+
+      // Action Parsing
+      const actionRegex = /\|\|ACTION:(.*?)\|\|/g;
+      let match;
+      while ((match = actionRegex.exec(aiResponseText)) !== null) {
+        try {
+          parsedActions.push(JSON.parse(match[1]));
+        } catch (e) {
+          console.error('Action Parse Error:', e);
+        }
+      }
+      aiResponseText = aiResponseText.replace(/\|\|ACTION:.*?\|\|/g, '').trim();
+
+    } catch (apiError) {
+      console.error('Gemini API Error:', apiError);
+      aiResponseText = 'Kanka sanırım internet bağlantımda veya sunucularda bir sorun var. Bağlantını kontrol edip tekrar dener misin? 🔌';
     }
-    aiResponseText = aiResponseText.replace(/\|\|ACTION:.*?\|\|/g, '').trim();
 
     if (isVoiceModeEnabled && aiResponseText) {
       Speech.stop();
@@ -193,78 +258,26 @@ export const ChatScreen = () => {
         </View>
       </View>
 
-      <ScrollView 
-        ref={scrollViewRef}
-        style={styles.chatArea}        
-        contentContainerStyle={{ 
-          padding: 16, 
-          paddingBottom: isKeyboardVisible ? 20 : 120 
-        }}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-      >
-        <Animated.View style={{ opacity: fadeAnim }}>
-          {chatMessages.map((msg) => (
-            <View 
-              key={msg.id} 
-              style={[
-                styles.messageBubble,
-                msg.isUser ? styles.userBubble : [styles.aiBubble, { backgroundColor: theme.colors.glassBackground, borderColor: theme.colors.glassBorder }],
-                msg.isUser ? { backgroundColor: theme.colors.primary } : {}
-              ]}
-            >
-              {msg.imageUri && (
-                <Image source={{ uri: msg.imageUri }} style={styles.messageImage} />
-              )}
-              {msg.text !== '' && (
-                <Text style={{ 
-                  color: msg.isUser ? theme.colors.onPrimary : theme.colors.text,
-                  fontSize: 15,
-                  lineHeight: 22,
-                  marginTop: msg.imageUri ? 8 : 0
-                }}>
-                  {msg.text}
-                </Text>
-              )}
-              {msg.actions && msg.actions.length > 0 && (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 }}>
-                  {msg.actions.map((act, index) => (
-                    <Chip 
-                      key={index} 
-                      icon={
-                        act.type === 'map' ? 'map-marker' : 
-                        act.type === 'youtube' ? 'youtube' :
-                        act.type === 'spotify' ? 'spotify' : 'link'
-                      } 
-                      mode="outlined" 
-                      onPress={() => {
-                        if (act.type === 'map' && act.query) {
-                           Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.query)}`);
-                        } else if ((act.type === 'link' || act.type === 'youtube' || act.type === 'spotify') && act.url) {
-                           Linking.openURL(act.url);
-                        }
-                      }}
-                      style={{ 
-                        backgroundColor: theme.colors.surface,
-                        borderColor: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.outline
-                      }}
-                      textStyle={{
-                        color: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.text
-                      }}
-                    >
-                      {act.label}
-                    </Chip>
-                  ))}
-                </View>
-              )}
-            </View>
-          ))}
-          {isLoading && (
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <FlatList 
+          ref={scrollViewRef as any}
+          data={chatMessages}
+          keyExtractor={(item) => item.id}
+          style={styles.chatArea}
+          contentContainerStyle={{ 
+            padding: 16, 
+            paddingBottom: isKeyboardVisible ? 20 : 120 
+          }}
+          renderItem={({ item }) => <ChatBubble msg={item} theme={theme} />}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          ListFooterComponent={isLoading ? (
             <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: theme.colors.glassBackground, borderColor: theme.colors.glassBorder, width: 80 }]}>
               <Text style={{ color: theme.colors.onSurfaceVariant }}>Yazıyor...</Text>
             </View>
-          )}
-        </Animated.View>
-      </ScrollView>
+          ) : null}
+        />
+      </Animated.View>
 
       {/* Input Area - Glassmorphism */}
       <View style={[styles.inputContainerWrapper, { 
@@ -290,7 +303,7 @@ export const ChatScreen = () => {
           />
           <TextInput
             mode="outlined"
-            placeholder="AIPA'ya bir şey sor..."
+            placeholder="Aisistan'ya bir şey sor..."
             placeholderTextColor={theme.colors.onSurfaceVariant}
             value={inputText}
             onChangeText={setInputText}

@@ -2,15 +2,15 @@
   "expo": {
     "sdkVersion": "54.0.0",
     "name": "Aisistan",
-    "slug": "aipa-mobile",
-    "scheme": "aipamobile",
+    "slug": "aisistan-mobile",
+    "scheme": "aisistanmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/aisistan_logo.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aipa.mobile",
+      "bundleIdentifier": "com.aisistan.mobile",
       "infoPlist": {
         "UIBackgroundModes": [
           "location",
@@ -22,12 +22,12 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Arka planda çalışırken geofencing yeteneklerini (örneğin antrenman hatırlatıcısı) sunabilmek için konumunuzu takip etmemiz gerekir.",
         "NSCalendarsUsageDescription": "Takviminize etkinlik eklemek için izninize ihtiyaç duyuyoruz.",
         "NSRemindersUsageDescription": "Etkinlik hatırlatıcıları eklemek için izninize ihtiyaç duyuyoruz.",
-        "NSPhotoLibraryUsageDescription": "AIPA'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var.",
-        "NSCameraUsageDescription": "AIPA'nın belgelerinizi okuyabilmesi için kameranıza erişim iznine ihtiyacımız var."
+        "NSPhotoLibraryUsageDescription": "Aisistan'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var.",
+        "NSCameraUsageDescription": "Aisistan'nın belgelerinizi okuyabilmesi için kameranıza erişim iznine ihtiyacımız var."
       }
     },
     "android": {
-      "package": "com.aipa.mobile",
+      "package": "com.aisistan.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/aisistan_logo.png",
@@ -51,8 +51,8 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "AIPA_Mobile takviminize etkinlik eklemek için izninize ihtiyaç duyuyor.",
-          "remindersPermission": "AIPA_Mobile etkinlik hatırlatıcıları eklemek için izninize ihtiyaç duyuyor."
+          "calendarPermission": "Aisistan_Mobile takviminize etkinlik eklemek için izninize ihtiyaç duyuyor.",
+          "remindersPermission": "Aisistan_Mobile etkinlik hatırlatıcıları eklemek için izninize ihtiyaç duyuyor."
         }
       ],
       [
@@ -74,7 +74,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "AIPA'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var."
+          "photosPermission": "Aisistan'nın belgelerinizi okuyabilmesi için fotoğraf galerinize erişim iznine ihtiyacımız var."
         }
       ],
       "expo-web-browser"

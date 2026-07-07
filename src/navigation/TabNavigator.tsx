@@ -32,8 +32,8 @@ export const TabNavigator = () => {
             iconName = focused ? 'chat' : 'chat-outline';
           } else if (route.name === 'Odaklanma') {
             iconName = focused ? 'bullseye-arrow' : 'bullseye';
-          } else if (route.name === 'Profil') {
-            iconName = focused ? 'account-circle' : 'account-circle-outline';
+          } else if (route.name === 'Cüzdan') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'Harita') {
             iconName = focused ? 'map-marker' : 'map-marker-outline';
           }
@@ -87,7 +87,7 @@ export const TabNavigator = () => {
       <Tab.Screen name="Harita" component={MapScreen} />
       <Tab.Screen name="Sohbet" component={ChatScreen} />
       <Tab.Screen name="Odaklanma" component={FocusModeScreen} />
-      <Tab.Screen name="Profil" component={ProfileScreen} />
+      <Tab.Screen name="Cüzdan" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };

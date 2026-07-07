@@ -14,28 +14,24 @@ export const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
   const isDarkMode = useAppStore((state) => state.isDarkMode);
   const toggleDarkMode = useAppStore((state) => state.toggleDarkMode);
-  const tasks = useAppStore((state) => state.tasks);
-  const completedTasks = useAppStore((state) => state.completedTasks);
+  const expenses = useAppStore((state) => state.expenses || []);
+  
+  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
 
-  const totalPending = tasks.length;
-  const totalCompleted = completedTasks.length;
+  const groupedExpenses = expenses.reduce((acc, curr) => {
+    const cat = curr.category || 'Diğer';
+    acc[cat] = (acc[cat] || 0) + curr.amount;
+    return acc;
+  }, {} as Record<string, number>);
 
-  const chartData = [
-    {
-      name: 'Tamamlandı',
-      population: totalCompleted,
-      color: theme.colors.success || '#22c55e',
-      legendFontColor: theme.colors.text,
-      legendFontSize: 12,
-    },
-    {
-      name: 'Bekliyor',
-      population: totalPending,
-      color: theme.colors.error || '#ef4444',
-      legendFontColor: theme.colors.text,
-      legendFontSize: 12,
-    },
-  ];
+  const chartColors = [theme.colors.primary, theme.colors.secondary, theme.colors.error, '#f59e0b', '#3b82f6', '#8b5cf6'];
+  const chartData = Object.keys(groupedExpenses).map((key, index) => ({
+    name: key,
+    population: groupedExpenses[key],
+    color: chartColors[index % chartColors.length],
+    legendFontColor: theme.colors.text,
+    legendFontSize: 12,
+  }));
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -47,16 +43,18 @@ export const ProfileScreen = () => {
           <Avatar.Icon size={100} icon="account" style={{ backgroundColor: theme.colors.surface }} color={theme.colors.primary} />
         </View>
         <Text variant="headlineMedium" style={[styles.name, { color: theme.colors.onPrimary }]}>Kullanıcı</Text>
-        <Text variant="bodyLarge" style={[styles.email, { color: 'rgba(255,255,255,0.8)' }]}>AIPA Akıllı Asistan</Text>
+        <Text variant="bodyLarge" style={[styles.email, { color: 'rgba(255,255,255,0.8)' }]}>Aisistan Akıllı Asistan</Text>
       </LinearGradient>
 
       <View style={styles.content}>
         
-        {/* Üretkenlik Grafiği */}
+        {/* Cüzdan & Harcamalar */}
         <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outline, borderWidth: 1, padding: 16, marginBottom: 20 }]}>
-          <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 16, color: theme.colors.text }}>Haftalık Üretkenlik</Text>
-          {(totalPending === 0 && totalCompleted === 0) ? (
-            <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, marginVertical: 20 }}>Henüz hiç görev verisi yok.</Text>
+          <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 8, color: theme.colors.text }}>Cüzdan & Harcamalar</Text>
+          <Text variant="displaySmall" style={{ fontWeight: 'bold', color: theme.colors.primary, marginBottom: 16 }}>₺{totalExpense}</Text>
+          
+          {expenses.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, marginVertical: 20 }}>Henüz hiç harcama verisi yok. Aisistan'a mikrofondan harcamalarınızı söyleyin!</Text>
           ) : (
             <PieChart
               data={chartData}

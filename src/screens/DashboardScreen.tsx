@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ScrollView, StyleSheet, View, Animated, Dimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Button, Avatar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
@@ -7,6 +7,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Speech from 'expo-speech';
 import { TaskCard } from '../components/TaskCard';
 import { VoiceRecorder } from '../components/VoiceRecorder';
 import { useAppStore } from '../store/useAppStore';
@@ -35,7 +36,7 @@ export const DashboardScreen = () => {
   const setUserToken = useAppStore((state) => state.setUserToken);
   const startDataPolling = useAppStore((state) => state.startDataPolling);
 
-  const redirectUri = 'https://auth.expo.io/@oyuncucilgin008/AIPA_Mobile';
+  const redirectUri = 'https://auth.expo.io/@oyuncucilgin008/Aisistan_Mobile';
   
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
@@ -81,7 +82,7 @@ export const DashboardScreen = () => {
   }, [isLoading, tasks]);
 
   const displayData = isFocusModeEnabled 
-    ? tasks.filter(item => item.urgencyScore >= 8)
+    ? tasks.filter(item => item.urgencyScore >= 80)
     : tasks;
 
   return (
@@ -140,6 +141,32 @@ export const DashboardScreen = () => {
             </View>
           ))}
         </ScrollView>
+      </View>
+
+      {/* Bugünün Özeti (Daily Briefing) */}
+      <View style={[styles.briefingContainer, { backgroundColor: theme.colors.primaryContainer }]}>
+        <View style={{ flex: 1 }}>
+          <Text variant="titleMedium" style={{ color: theme.colors.onPrimaryContainer, fontWeight: 'bold' }}>
+            Aisistan Günlük Özet
+          </Text>
+          <Text variant="bodySmall" style={{ color: theme.colors.onPrimaryContainer, marginTop: 4 }}>
+            Bugün yapman gereken {displayData.length} görev var.
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.playButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => {
+            Speech.stop();
+            if (displayData.length > 0) {
+              const textToSpeak = "Bugün yapmanız gereken görevler şunlar. " + displayData.map(t => t.title).join(', ');
+              Speech.speak(textToSpeak, { language: 'tr-TR' });
+            } else {
+              Speech.speak("Bugün için planlanmış bir göreviniz bulunmuyor. Harika gidiyorsunuz!", { language: 'tr-TR' });
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="play" size={28} color={theme.colors.onPrimary} />
+        </TouchableOpacity>
       </View>
 
       {/* Sesli Not Butonu (Bas-Konuş) */}
@@ -269,6 +296,27 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    flex: 1,
+  },
+  briefingContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  playButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   }
 });

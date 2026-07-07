@@ -55,6 +55,14 @@ export interface Geofence {
   description: string;
 }
 
+export interface Expense {
+  id: string;
+  amount: number;
+  title: string;
+  category: string;
+  date: string;
+}
+
 interface AppState {
   isFocusModeEnabled: boolean;
   toggleFocusMode: () => void;
@@ -103,6 +111,10 @@ interface AppState {
   geofences: Geofence[];
   addGeofence: (fence: Geofence) => void;
   removeGeofence: (id: string) => void;
+
+  expenses: Expense[];
+  addExpense: (expense: Expense) => void;
+  removeExpense: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -213,7 +225,7 @@ export const useAppStore = create<AppState>()(
   })),
 
   chatMessages: [
-    { id: '1', text: 'Merhaba! Ben AIPA, senin kişisel yapay zeka asistanınım. Bugün sana nasıl yardımcı olabilirim?', isUser: false }
+    { id: '1', text: 'Merhaba! Ben Aisistan, senin kişisel yapay zeka asistanınım. Bugün sana nasıl yardımcı olabilirim?', isUser: false }
   ],
   addChatMessage: (msg) => set((state) => ({ chatMessages: [...state.chatMessages, msg] })),
   clearChatMessages: () => set({ chatMessages: [] }),
@@ -237,7 +249,11 @@ export const useAppStore = create<AppState>()(
     }
   ],
   addGeofence: (fence) => set((state) => ({ geofences: [...state.geofences, fence] })),
-  removeGeofence: (id) => set((state) => ({ geofences: state.geofences.filter(g => g.id !== id) })),
+  removeGeofence: (id) => set((state) => ({ geofences: state.geofences.filter((f) => f.id !== id) })),
+
+  expenses: [],
+  addExpense: (expense) => set((state) => ({ expenses: [expense, ...state.expenses] })),
+  removeExpense: (id) => set((state) => ({ expenses: state.expenses.filter((e) => e.id !== id) })),
 
   fetchDailyBriefing: async () => {
     set({ isLoading: true, error: null });
@@ -398,7 +414,7 @@ export const useAppStore = create<AppState>()(
   }
     }),
     {
-      name: 'aipa-storage-v5',
+      name: 'aisistan-storage-v5',
       storage: createJSONStorage(() => AsyncStorage),
       // İsteğe bağlı: Hangi verilerin diske yazılacağını seçebilirsiniz. 
       // (Emails ve Events gibi API'den her açılışta güncel çekilen verileri persist etmemek daha iyidir)
@@ -411,7 +427,10 @@ export const useAppStore = create<AppState>()(
         completedTasks: state.completedTasks,
         userToken: state.userToken,
         userInfo: state.userInfo,
-        chatMessages: state.chatMessages,
+        chatMessages: state.chatMessages.map(msg => ({
+          ...msg,
+          imageUri: undefined // Dev boyutlu base64 fotoğrafları diske yazma, çökmesini engelle
+        })),
         geofences: state.geofences,
       }),
     }
