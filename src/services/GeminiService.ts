@@ -38,7 +38,7 @@ export const initChatSession = (tasks: any[], emails: any[], weatherInfo: string
   // İhtiyaç duyulursa burada session sıfırlanabilir
 };
 
-export const sendMessageToGemini = async (message: string, imageBase64?: string, tasks: any[] = [], emails: any[] = [], weatherInfo: string | null = null, geofences: any[] = [], userLocation: { lat: number, lon: number } | null = null): Promise<string> => {
+export const sendMessageToGemini = async (message: string, imageBase64?: string, tasks: any[] = [], emails: any[] = [], weatherInfo: string | null = null, geofences: any[] = [], userLocation: { lat: number, lon: number } | null = null, userPreferences: string[] = []): Promise<string> => {
   try {
     const taskListText = tasks.length > 0 
       ? tasks.map(t => `- ${t.title} (Aciliyet: ${t.urgencyScore}): ${t.summary}`).join('\n')
@@ -66,6 +66,10 @@ ${emailsText}
 İşte kullanıcının haritada işaretlediği KAYITLI KONUMLARI (GEOFENCES):
 ${geofencesText}
 
+KULLANICININ KALICI HAFIZASI (SENİN ÖĞRENDİĞİN BİLGİLER):
+${userPreferences.length > 0 ? userPreferences.map(p => `- ${p}`).join('\n') : 'Henüz kullanıcı hakkında özel bir bilgi kaydedilmedi.'}
+Kullanıcı sana kendisiyle, hobileriyle veya kalıcı olarak hatırlamanı istediği bir şeyle ilgili bir bilgi verirse KESİNLİKLE "saveUserPreference" aracını kullanıp bunu kaydet. Böylece ileride bu bilgilere göre çok daha kişiselleştirilmiş cevaplar verebilirsin.
+
 ÖZEL TALİMAT 1: Kullanıcı sana "spora geldim", "salondayım" veya spora başladığını belirten bir şey söylerse, onu hemen motive et ve GÖĞÜS & ARKA KOL antrenman programını madde madde, emojilerle listele. Örnek Program:
 1. Bench Press (4 Set x 10-12 Tekrar) 💪
 2. Incline Dumbbell Press (3 Set x 12 Tekrar) 🏋️‍♂️
@@ -81,6 +85,14 @@ Bunu normal mesajının dışında, görünmez bir data gibi en sona ekle.
 
 ÖZEL TALİMAT 4 (CANLI ÜRÜN ARAMA VE MESAFE): Kullanıcı bir ürün satın almak istediğinde veya fiyatını sorduğunda (örn: "Cimri'den iPhone 16 bul", "internette araştır"), KESİNLİKLE "İnternet erişimim yok" veya "Arama yapamıyorum" DEME! Senin "searchLiveInternet" adında canlı internete bağlanan harika bir aracın var. Sadece bu aracı çalıştırarak arama yap.
 Bulduğun en ucuz mağazanın adını alıp "calculateDistanceToStore" aracını da çalıştırarak o mağazanın kullanıcıya olan mesafesini hesapla ve kullanıcıya mükemmel bir dille cevap ver!
+Eğer kullanıcıya belirli bir FİZİKSEL MAĞAZA öneriyorsan (Örn: Vatan Bilgisayar, MediaMarkt), mesajının EN SONUNA tıklanabilir bir harita butonu ekle: ||ACTION:{"type":"map","label":"📍 Yol Tarifi Al","query":"Vatan Bilgisayar Kadıköy"}||.
+Eğer kullanıcıya İNTERNETTEN BİR ÜRÜN LİNKİ bulduysan (Örn: Cimri linki), mesajının EN SONUNA tıklanabilir bir web butonu ekle: ||ACTION:{"type":"link","label":"🛒 Ürüne Git","url":"https://cimri.com/..."}||.
+
+ÖZEL TALİMAT 5 (MÜZİK VE VİDEO DİREKT LİNKLERİ): Kullanıcı sana bir şarkı veya dizi/video ismi verip "bunu izlemek/dinlemek istiyorum" derse, mesajının sonuna iki özel buton ekle:
+- YouTube Butonu: ||ACTION:{"type":"youtube","label":"▶️ YouTube'da Aç","url":"https://www.youtube.com/results?search_query=DİZİ_VEYA_ŞARKI_ADI"}||
+- Spotify Butonu (Eğer şarkıysa): ||ACTION:{"type":"spotify","label":"🎧 Spotify'da Dinle","url":"https://open.spotify.com/search/ŞARKI_ADI"}||
+Kullanıcıya uzun uzun anlatmak yerine doğrudan bu butonları sunarak onu mutlu et.
+
 Kullanıcının ANLIK CANLI GPS KONUMU: ${userLocation ? `Enlem: ${userLocation.lat}, Boylam: ${userLocation.lon}` : 'Bilinmiyor, mesafeyi tahmin et.'}
 
 Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa görevleri, mailleri ve hava durumunu baz alarak çok zekice tavsiyeler ver. Seni "kanka" gibi samimi bir üslupla kullanabilir, sen de ona göre samimi ama saygılı ve yardımsever ol.`;
@@ -184,6 +196,17 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
                 },
                 required: ["query"]
               }
+            },
+            {
+              name: "saveUserPreference",
+              description: "Kullanıcının hobilerini, sevdiği/sevmediği şeyleri, tuttuğu takımı, mesleğini, veya uzun vadede hatırlamanı istediği herhangi bir kişisel bilgisini kalıcı hafızaya kaydetmeni sağlar.",
+              parameters: {
+                type: "object",
+                properties: {
+                  preference: { type: "string", description: "Kaydedilecek kalıcı bilgi (Örn: 'Kullanıcı Galatasaraylıdır.', 'Kullanıcı yazılım mühendisidir.', 'Kullanıcı fıstık ezmesi sevmez.')" }
+                },
+                required: ["preference"]
+              }
             }
           ]
         }
@@ -258,6 +281,12 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
         } catch (e: any) {
           apiResponse = { success: false, message: "Tarih formatı hatalı veya sistem hatası oluştu." };
         }
+      } else if (call.name === 'saveUserPreference') {
+        const { preference } = call.args;
+        import('../store/useAppStore').then(store => {
+          store.useAppStore.getState().saveUserPreference(preference);
+        });
+        apiResponse = { success: true, message: "Bilgi başarıyla hafızaya kaydedildi." };
       } else if (call.name === 'calculateDistanceToStore') {
         const storeName = call.args.storeName;
         if (!userLocation) {

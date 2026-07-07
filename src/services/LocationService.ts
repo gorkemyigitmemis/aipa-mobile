@@ -7,19 +7,30 @@ const GEOFENCING_TASK = 'GEOFENCING_TASK';
 
 // Arka plan görevi tanımı (Task manager component/hook dışında tanımlanmalıdır)
 TaskManager.defineTask(GEOFENCING_TASK, async ({ data, error }: any) => {
-  if (error) {
-    console.error('Geofencing Task Error:', error.message);
-    return;
-  }
-  
-  if (data) {
-    const { eventType, region } = data as any;
-    
-    // ENTER durumu: Bölgeye giriş yapıldığında
-    if (eventType === Location.GeofencingEventType.Enter) {
-      console.log("Hedef konuma giriş yapıldı!", region);
-      triggerLocalNotificationMock(9);
+  try {
+    if (error) {
+      console.error('Geofencing Task Error:', error.message);
+      return;
     }
+    
+    if (data) {
+      const { eventType, region } = data as any;
+      
+      // ENTER durumu: Bölgeye giriş yapıldığında
+      if (eventType === Location.GeofencingEventType.Enter) {
+        console.log("Hedef konuma giriş yapıldı (Arka plan)!", region);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "📍 Aisistan Konum Uyarısı",
+            body: "Belirlediğiniz hedefe ulaştınız!",
+            sound: true,
+          },
+          trigger: null,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("Geofence Fatal Error caught to prevent crash:", e);
   }
 });
 
@@ -32,14 +43,17 @@ export const startGeofencing = async (lat: number = 41.0082, lon: number = 28.97
       return;
     }
 
-    // 2. Arka plan (Background) izni al (Expo Go'da çökmemesi için devre dışı bırakıldı)
-    // const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-    // if (bgStatus !== 'granted') {
-    //   console.log('Background location permission denied');
-    //   return;
-    // }
+    // 2. Arka plan (Background) izni al (Güvenli bir şekilde)
+    try {
+      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (bgStatus !== 'granted') {
+        console.log('Background location permission denied. Falling back to foreground watcher only.');
+      }
+    } catch (bgError) {
+      console.log('Background permission request skipped (Expo Go limitation).');
+    }
 
-    // 3. Geofencing izleme işlemini başlat (Sadece özel dev client'larda çalışır, Expo Go çökmemesi için try-catch eklendi)
+    // 3. Geofencing izleme işlemini başlat (Expo Go çökmemesi için try-catch eklendi)
     await Location.startGeofencingAsync(GEOFENCING_TASK, [
       {
         identifier: 'DynamicLocation_' + Date.now().toString(),

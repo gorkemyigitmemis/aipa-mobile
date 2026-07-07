@@ -31,11 +31,19 @@ export interface CalendarEvent {
   location: string;
 }
 
+export interface ChatAction {
+  type: 'map' | 'link' | 'youtube' | 'spotify';
+  label: string;
+  url?: string;
+  query?: string;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
   isUser: boolean;
   imageUri?: string;
+  actions?: ChatAction[];
 }
 
 export interface Geofence {
@@ -54,6 +62,15 @@ interface AppState {
   
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+
+  isVoiceModeEnabled: boolean;
+  toggleVoiceMode: () => void;
+
+  userPreferences: string[];
+  saveUserPreference: (pref: string) => void;
+
+  lastChatTimestamp: number;
+  updateLastChatTimestamp: () => void;
 
   confettiTick: number;
 
@@ -97,6 +114,15 @@ export const useAppStore = create<AppState>()(
 
   isDarkMode: false,
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+
+  isVoiceModeEnabled: true,
+  toggleVoiceMode: () => set((state) => ({ isVoiceModeEnabled: !state.isVoiceModeEnabled })),
+
+  userPreferences: [],
+  saveUserPreference: (pref) => set((state) => ({ userPreferences: [...state.userPreferences, pref] })),
+
+  lastChatTimestamp: 0,
+  updateLastChatTimestamp: () => set({ lastChatTimestamp: Date.now() }),
 
   confettiTick: 0,
 
@@ -378,6 +404,9 @@ export const useAppStore = create<AppState>()(
       // (Emails ve Events gibi API'den her açılışta güncel çekilen verileri persist etmemek daha iyidir)
       partialize: (state) => ({
         isDarkMode: state.isDarkMode,
+        isVoiceModeEnabled: state.isVoiceModeEnabled,
+        userPreferences: state.userPreferences,
+        lastChatTimestamp: state.lastChatTimestamp,
         tasks: state.tasks,
         completedTasks: state.completedTasks,
         userToken: state.userToken,

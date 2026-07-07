@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { registerForPushNotificationsAsync, setupNotificationHandler, scheduleMorningBriefing } from './src/services/NotificationService';
 import { startForegroundLocationWatch } from './src/services/LocationService';
+import { registerBackgroundFetchAsync } from './src/services/BackgroundAgentService';
 import { useAppStore } from './src/store/useAppStore';
 import { lightTheme, darkTheme } from './src/theme/theme';
 
@@ -26,6 +27,9 @@ export default function App() {
 
     // Sabah bildirimini kur
     scheduleMorningBriefing();
+
+    // Arka Plan Ajanını Kaydet
+    registerBackgroundFetchAsync();
   }, []);
 
   return (

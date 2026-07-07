@@ -1,12 +1,12 @@
 {
   "expo": {
     "sdkVersion": "54.0.0",
-    "name": "AIPA_Mobile",
-    "slug": "AIPA_Mobile",
+    "name": "Aisistan",
+    "slug": "aipa-mobile",
     "scheme": "aipamobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/aisistan_logo.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -29,8 +29,8 @@
     "android": {
       "package": "com.aipa.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/aisistan_logo.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },

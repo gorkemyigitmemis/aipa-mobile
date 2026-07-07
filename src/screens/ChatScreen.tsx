@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard, Animated, Image, TouchableOpacity } from 'react-native';
-import { Text, TextInput, IconButton, useTheme, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard, Animated, Image, TouchableOpacity, Linking } from 'react-native';
+import { Text, TextInput, IconButton, useTheme, ActivityIndicator, Chip } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
@@ -11,11 +11,19 @@ import { sendMessageToGemini, initChatSession } from '../services/GeminiService'
 import { startGeofencing } from '../services/LocationService';
 import { useAppStore } from '../store/useAppStore';
 
+interface ChatAction {
+  type: 'map' | 'link';
+  label: string;
+  url?: string;
+  query?: string;
+}
+
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
   imageUri?: string;
+  actions?: ChatAction[];
 }
 
 export const ChatScreen = () => {
@@ -32,7 +40,8 @@ export const ChatScreen = () => {
   const [selectedImage, setSelectedImage] = useState<{uri: string, base64: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-  const [isTTSActive, setIsTTSActive] = useState(true);
+  const isVoiceModeEnabled = useAppStore((state) => state.isVoiceModeEnabled);
+  const toggleVoiceMode = useAppStore((state) => state.toggleVoiceMode);
 
   useEffect(() => {
     // Sohbet açıldığında animasyonlu giriş
@@ -99,7 +108,7 @@ export const ChatScreen = () => {
     setSelectedImage(null);
     setIsLoading(true);
 
-    const { tasks, emails, weatherInfo, geofences } = useAppStore.getState();
+    const { tasks, emails, weatherInfo, geofences, userPreferences } = useAppStore.getState();
     
     let userLocation = null;
     try {
@@ -109,7 +118,7 @@ export const ChatScreen = () => {
       }
     } catch (e) { console.log('Location fetch failed:', e); }
 
-    let aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64, tasks, emails, weatherInfo, geofences, userLocation);
+    let aiResponseText = await sendMessageToGemini(userText, imagePayload?.base64, tasks, emails, weatherInfo, geofences, userLocation, userPreferences);
     
     // Geofencing Parsing
     const geoMatch = aiResponseText.match(/\|\|GEO:(.*?)\|\|/);
@@ -125,7 +134,20 @@ export const ChatScreen = () => {
       aiResponseText = aiResponseText.replace(/\|\|GEO:.*?\|\|/g, '').trim();
     }
 
-    if (isTTSActive && aiResponseText) {
+    // Action Parsing
+    const parsedActions: ChatAction[] = [];
+    const actionRegex = /\|\|ACTION:(.*?)\|\|/g;
+    let match;
+    while ((match = actionRegex.exec(aiResponseText)) !== null) {
+      try {
+        parsedActions.push(JSON.parse(match[1]));
+      } catch (e) {
+        console.error('Action Parse Error:', e);
+      }
+    }
+    aiResponseText = aiResponseText.replace(/\|\|ACTION:.*?\|\|/g, '').trim();
+
+    if (isVoiceModeEnabled && aiResponseText) {
       Speech.stop();
       Speech.speak(aiResponseText, { language: 'tr-TR' });
     }
@@ -134,9 +156,11 @@ export const ChatScreen = () => {
       id: (Date.now() + 1).toString(),
       text: aiResponseText,
       isUser: false,
+      actions: parsedActions,
     };
 
     addChatMessage(aiMessage);
+    useAppStore.getState().updateLastChatTimestamp();
     setIsLoading(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
@@ -158,12 +182,12 @@ export const ChatScreen = () => {
             onPress={clearChatMessages}
           />
           <IconButton 
-            icon={isTTSActive ? "volume-high" : "volume-off"} 
-            iconColor={isTTSActive ? theme.colors.primary : theme.colors.onSurfaceVariant}
+            icon={isVoiceModeEnabled ? "volume-high" : "volume-off"} 
+            iconColor={isVoiceModeEnabled ? theme.colors.primary : theme.colors.onSurfaceVariant}
             size={24}
             onPress={() => {
-              if (isTTSActive) Speech.stop();
-              setIsTTSActive(!isTTSActive);
+              if (isVoiceModeEnabled) Speech.stop();
+              toggleVoiceMode();
             }}
           />
         </View>
@@ -200,6 +224,37 @@ export const ChatScreen = () => {
                 }}>
                   {msg.text}
                 </Text>
+              )}
+              {msg.actions && msg.actions.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 }}>
+                  {msg.actions.map((act, index) => (
+                    <Chip 
+                      key={index} 
+                      icon={
+                        act.type === 'map' ? 'map-marker' : 
+                        act.type === 'youtube' ? 'youtube' :
+                        act.type === 'spotify' ? 'spotify' : 'link'
+                      } 
+                      mode="outlined" 
+                      onPress={() => {
+                        if (act.type === 'map' && act.query) {
+                           Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.query)}`);
+                        } else if ((act.type === 'link' || act.type === 'youtube' || act.type === 'spotify') && act.url) {
+                           Linking.openURL(act.url);
+                        }
+                      }}
+                      style={{ 
+                        backgroundColor: theme.colors.surface,
+                        borderColor: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.outline
+                      }}
+                      textStyle={{
+                        color: act.type === 'youtube' ? '#FF0000' : act.type === 'spotify' ? '#1DB954' : theme.colors.text
+                      }}
+                    >
+                      {act.label}
+                    </Chip>
+                  ))}
+                </View>
               )}
             </View>
           ))}
