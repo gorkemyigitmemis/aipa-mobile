@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../store/useAppStore';
 import MapView, { Marker, Circle } from 'react-native-maps';
+import Slider from '@react-native-community/slider';
 
 const { width, height } = Dimensions.get('window');
 
@@ -146,17 +147,26 @@ export const MapScreen = () => {
               style={{ marginBottom: 16 }}
             />
 
-            <Text variant="bodyMedium" style={{ marginBottom: 8, fontWeight: 'bold' }}>Etki Alanı (Yarıçap)</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
-              {[10, 25, 50, 100].map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[styles.radiusBtn, radius === r && { backgroundColor: theme.colors.primary }]}
-                  onPress={() => setRadius(r)}
-                >
-                  <Text style={{ color: radius === r ? '#fff' : theme.colors.primary }}>{r}m</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={{ marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text variant="bodyMedium" style={{ fontWeight: 'bold' }}>Etki Alanı (Yarıçap)</Text>
+                <Text variant="bodyLarge" style={{ fontWeight: 'bold', color: theme.colors.primary }}>{radius}m</Text>
+              </View>
+              <Slider
+                style={{ width: '100%', height: 40 }}
+                minimumValue={10}
+                maximumValue={500}
+                step={10}
+                value={radius}
+                onValueChange={(val) => setRadius(val)}
+                minimumTrackTintColor={theme.colors.primary}
+                maximumTrackTintColor={theme.colors.onSurfaceVariant}
+                thumbTintColor={theme.colors.primary}
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>10m</Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>500m</Text>
+              </View>
             </View>
 
             <Button mode="contained" onPress={handleSave} disabled={title.trim() === ''} style={{ borderRadius: 12 }}>
