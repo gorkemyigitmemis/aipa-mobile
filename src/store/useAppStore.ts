@@ -230,24 +230,7 @@ export const useAppStore = create<AppState>()(
   addChatMessage: (msg) => set((state) => ({ chatMessages: [...state.chatMessages, msg] })),
   clearChatMessages: () => set({ chatMessages: [] }),
 
-  geofences: [
-    {
-      id: 'g1',
-      latitude: 41.0082,
-      longitude: 28.9784,
-      radius: 100,
-      title: 'Ofis',
-      description: 'Ofise varınca günlük brifingi oku.'
-    },
-    {
-      id: 'g2',
-      latitude: 40.9900,
-      longitude: 29.0200,
-      radius: 150,
-      title: 'Market',
-      description: 'Markete girince süt ve yumurta al.'
-    }
-  ],
+  geofences: [],
   addGeofence: (fence) => set((state) => ({ geofences: [...state.geofences, fence] })),
   removeGeofence: (id) => set((state) => ({ geofences: state.geofences.filter((f) => f.id !== id) })),
 
@@ -414,7 +397,7 @@ export const useAppStore = create<AppState>()(
   }
     }),
     {
-      name: 'aisistan-storage-v5',
+      name: 'aisistan-storage-v6',
       storage: createJSONStorage(() => AsyncStorage),
       // İsteğe bağlı: Hangi verilerin diske yazılacağını seçebilirsiniz. 
       // (Emails ve Events gibi API'den her açılışta güncel çekilen verileri persist etmemek daha iyidir)
@@ -432,6 +415,7 @@ export const useAppStore = create<AppState>()(
           imageUri: undefined // Dev boyutlu base64 fotoğrafları diske yazma, çökmesini engelle
         })),
         geofences: state.geofences,
+        expenses: state.expenses,
       }),
     }
   )
