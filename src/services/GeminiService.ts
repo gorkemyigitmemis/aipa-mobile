@@ -227,7 +227,7 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
     };
 
     const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY?.trim() || '';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+    let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
 
     let response = await fetch(endpoint, {
       method: 'POST',
@@ -238,10 +238,25 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
     let data = await response.json();
     console.log('Gemini Raw API Response:', JSON.stringify(data));
 
+    // Fallback to Pro model if Flash is overloaded
+    if (data.error && (data.error.code === 429 || data.error.code === 503)) {
+      console.log('Flash model is overloaded (429/503). Falling back to Pro model...');
+      endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${API_KEY}`;
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      data = await response.json();
+    }
+
     if (data.error) {
       console.error('Initial Gemini Error:', data.error);
       if (data.error.code === 429) {
         return "Üzgünüm kanka, Google API'sine çok hızlı istek attık ve bizi 1 dakikalığına engelledi (Rate Limit). Lütfen 30 saniye bekleyip tekrar sorar mısın? ⏳";
+      }
+      if (data.error.code === 503) {
+        return "Kanka şu an Google yapay zeka sunucularında aşırı yoğunluk (High Demand) var. Lütfen birkaç dakika bekleyip tekrar sorar mısın? ⏳";
       }
       return `API Hatası: ${data.error.message}`;
     }
@@ -377,6 +392,9 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
         if (data.error.code === 429) {
           return "Üzgünüm kanka, internette arama yaparken Google'ın anlık sorgu limitine takıldık (Çok hızlı istek attık). Lütfen 30 saniye sonra tekrar dener misin? ⏳";
         }
+        if (data.error.code === 503) {
+          return "Kanka şu an Google yapay zeka sunucularında aşırı yoğunluk (High Demand) var. İnternet araması tamamlanamadı. Lütfen birazdan tekrar dene! ⏳";
+        }
         return `API Hatası: ${data.error.message}`;
       }
       modelResponsePart = data.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall) || data.candidates?.[0]?.content?.parts?.find((p: any) => p.text) || data.candidates?.[0]?.content?.parts?.[0];
@@ -391,8 +409,11 @@ Eğer kullanıcı sana işleriyle veya günüyle alakalı bir şey sorarsa göre
     });
 
     return responseText;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Gemini API Hatası:', error);
+    if (error.message && (error.message.includes('503') || error.message.includes('overloaded'))) {
+      return "Kanka Google sunucularında şu an aşırı yoğunluk (High Demand) var. Lütfen birkaç dakika sonra tekrar dene. ⏳";
+    }
     return 'Şu an servise ulaşılamıyor, lütfen internet bağlantınızı kontrol edip tekrar deneyin.';
   }
 };
